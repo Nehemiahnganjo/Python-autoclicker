@@ -12,11 +12,11 @@ import queue
 
 class UniversalAutoclicker:
     def __init__(self):
-        # Compact window for 720p screens
+        # Enhanced window with modern dark theme
         self.root = tk.Tk()
-        self.root.title("Universal Clicker")
-        self.root.geometry("600x500")
-        self.root.configure(bg='#1a1a1a')
+        self.root.title("Universal Clicker Pro")
+        self.root.geometry("650x600")
+        self.root.configure(bg='#2c2c2c')
 
         # Screen dimensions
         self.screen_width = pyautogui.size().width
@@ -32,61 +32,68 @@ class UniversalAutoclicker:
         self.click_thread = None
 
         # Create UI
-        self.create_compact_ui()
+        self.create_enhanced_ui()
         self.setup_hotkeys()
 
-    def create_compact_ui(self):
-        # Main frame with dark theme
-        main_frame = tk.Frame(self.root, bg='#1a1a1a')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    def create_enhanced_ui(self):
+        # Main container with padding
+        main_frame = tk.Frame(self.root, bg='#2c2c2c', padx=15, pady=15)
+        main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Compact Title
-        title = tk.Label(main_frame, text="Universal Clicker", 
-                         font=('Arial', 16, 'bold'), 
-                         bg='#1a1a1a', 
-                         fg='#00ffff')
-        title.pack(pady=5)
+        # Title with modern styling
+        title_frame = tk.Frame(main_frame, bg='#2c2c2c')
+        title_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        title = tk.Label(title_frame, text="Nehemiah's Clicker Pro", 
+                         font=('Segoe UI', 18, 'bold'), 
+                         bg='#2c2c2c', 
+                         fg='#4de6d9')
+        title.pack(side=tk.LEFT)
 
-        # Settings Frame
-        settings_frame = tk.Frame(main_frame, bg='#1a1a1a')
-        settings_frame.pack(fill=tk.X, pady=5)
+        # Settings Frame with improved layout
+        settings_frame = tk.Frame(main_frame, bg='#2c2c2c')
+        settings_frame.pack(fill=tk.X, pady=10)
 
-        # Compact Settings
+        # Compact Settings with improved styling
         settings = [
-            ("Clicks/Line", "10"),
+            ("Clicks/Line", "30"),
             ("Line Delay (ms)", "0"),
-            ("Iterations", "1"),
-            ("Click Interval (ms)", "10")
+            ("Iterations", "9999999999999999999999999999999999999999999999999999"),
+            ("Click Interval (ms)", "0")
         ]
 
         self.entries = {}
         for i, (label, default) in enumerate(settings):
-            frame = tk.Frame(settings_frame, bg='#1a1a1a')
-            frame.pack(fill=tk.X, pady=2)
+            frame = tk.Frame(settings_frame, bg='#2c2c2c')
+            frame.pack(fill=tk.X, pady=3)
             
             lbl = tk.Label(frame, text=label, 
-                           bg='#1a1a1a', 
-                           fg='#00ffff', 
+                           bg='#2c2c2c', 
+                           fg='#4de6d9', 
+                           font=('Segoe UI', 10),
                            width=15, 
                            anchor='w')
             lbl.pack(side=tk.LEFT)
             
             entry = tk.Entry(frame, width=10, 
-                             bg='#2a2a2a', 
-                             fg='#00ff00')
+                             bg='#3c3c3c', 
+                             fg='#4de6d9',
+                             font=('Consolas', 10),
+                             insertbackground='#4de6d9')
             entry.insert(0, default)
             entry.pack(side=tk.LEFT, padx=5)
             
             self.entries[label] = entry
 
-        # Control Buttons
-        button_frame = tk.Frame(main_frame, bg='#1a1a1a')
-        button_frame.pack(fill=tk.X, pady=5)
+        # Control Buttons with modern design
+        button_frame = tk.Frame(main_frame, bg='#2c2c2c')
+        button_frame.pack(fill=tk.X, pady=10)
 
         buttons = [
-            ("Draw Line (F6)", self.start_line_drawing, '#00ffff'),
-            ("Start Clicking (F7)", self.start_clicking, '#00ff00'),
-            ("Stop (F8)", self.stop_clicking, '#ff0066')
+            ("Draw Line (F6)", self.start_line_drawing, '#4de6d9'),
+            ("Start Clicking (F7)", self.start_clicking, '#2ecc71'),
+            ("Stop (F8)", self.stop_clicking, '#e74c3c'),
+            ("Clear Points", self.clear_lines, '#f39c12')
         ]
 
         for text, command, color in buttons:
@@ -94,24 +101,53 @@ class UniversalAutoclicker:
                             command=command, 
                             bg=color, 
                             fg='#000000', 
-                            font=('Arial', 10, 'bold'))
+                            font=('Segoe UI', 10, 'bold'),
+                            activebackground=color,
+                            relief=tk.FLAT,
+                            padx=10,
+                            pady=5)
             btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
 
-        # Line List
+        # Enhanced Line List with scrollbar
+        list_frame = tk.Frame(main_frame, bg='#2c2c2c')
+        list_frame.pack(fill=tk.X, pady=10)
+
+        list_label = tk.Label(list_frame, text="Recorded Lines", 
+                               bg='#2c2c2c', 
+                               fg='#4de6d9', 
+                               font=('Segoe UI', 12))
+        list_label.pack()
+
         self.line_listbox = tk.Listbox(main_frame, 
                                        height=5, 
-                                       bg='#2a2a2a', 
-                                       fg='#00ff00')
-        self.line_listbox.pack(fill=tk.X, pady=5)
+                                       bg='#3c3c3c', 
+                                       fg='#4de6d9',
+                                       selectbackground='#4de6d9',
+                                       selectforeground='#000000',
+                                       font=('Consolas', 10))
+        self.line_listbox.pack(fill=tk.X, padx=10)
 
-        # Status Label
+        # Scrollbar for listbox
+        scrollbar = tk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.line_listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.line_listbox.config(yscrollcommand=scrollbar.set)
+
+        # Status Label with modern styling
         self.status_var = tk.StringVar(value="Ready")
         status_label = tk.Label(main_frame, 
                                 textvariable=self.status_var, 
-                                bg='#1a1a1a', 
-                                fg='#00ffff')
-        status_label.pack(pady=5)
+                                bg='#2c2c2c', 
+                                fg='#4de6d9',
+                                font=('Segoe UI', 10))
+        status_label.pack(pady=10)
 
+    def clear_lines(self):
+        # Clear all recorded lines
+        self.lines.clear()
+        self.line_listbox.delete(0, tk.END)
+        self.status_var.set("Lines cleared")
+
+    # Rest of the methods remain the same as in the previous implementation
     def setup_hotkeys(self):
         keyboard.add_hotkey('f6', self.start_line_drawing)
         keyboard.add_hotkey('f7', self.start_clicking)
@@ -249,7 +285,7 @@ class UniversalAutoclicker:
         self.root.mainloop()
 
 def main():
-    print("Universal Clicker - Starting...")
+    print("Universal Clicker Pro - Starting...")
     try:
         app = UniversalAutoclicker()
         app.run()
@@ -259,6 +295,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-# Dependency Installation
+# Dependency 
 print("\nInstall dependencies:")
-print("pip install pyautogui keyboard pillow")
+print("pip install pyautogui keyboard pillow pystray")
