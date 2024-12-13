@@ -8,7 +8,6 @@ import keyboard
 import pystray
 from PIL import Image, ImageGrab
 import random
-import queue
 
 class UniversalAutoclicker:
     def __init__(self):
@@ -58,7 +57,7 @@ class UniversalAutoclicker:
         settings = [
             ("Clicks/Line", "30"),
             ("Line Delay (ms)", "0"),
-            ("Iterations", "9999999999999999999999999999999999999999999999999999"),
+            ("Iterations", "999999"),
             ("Click Interval (ms)", "0")
         ]
 
@@ -141,13 +140,20 @@ class UniversalAutoclicker:
                                 font=('Segoe UI', 10))
         status_label.pack(pady=10)
 
+        # Footer
+        footer = tk.Label(self.root, text="Developed by Nehemiah Ng'anjo| nehemiahict@gmail.com",
+        
+                          bg='#2c2c2c', 
+                          fg='#808080', 
+                          font=('Segoe UI', 8))
+        footer.pack(side=tk.BOTTOM, pady=10)
+
     def clear_lines(self):
         # Clear all recorded lines
         self.lines.clear()
         self.line_listbox.delete(0, tk.END)
         self.status_var.set("Lines cleared")
 
-    # Rest of the methods remain the same as in the previous implementation
     def setup_hotkeys(self):
         keyboard.add_hotkey('f6', self.start_line_drawing)
         keyboard.add_hotkey('f7', self.start_clicking)
@@ -284,6 +290,7 @@ class UniversalAutoclicker:
     def run(self):
         self.root.mainloop()
 
+# Entry point of the application
 def main():
     print("Universal Clicker Pro - Starting...")
     try:
@@ -295,6 +302,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-# Dependency 
+# Dependency installation instructions
 print("\nInstall dependencies:")
 print("pip install pyautogui keyboard pillow pystray")
