@@ -171,6 +171,21 @@ class UniversalAutoclicker:
                                 font=('Segoe UI', 10))
         status_label.pack(pady=10)
 
+        # Footer with Developer Info
+        footer_frame = tk.Frame(main_frame, bg='#34495E')
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(10, 0))
+        
+        footer_text = (
+            "Developed by Nehemiah Ng'anjo | Phone: 0882730381 | "
+            "Email: nehemiahict@gmail.com | Company: nextlinkmw.com"
+        )
+        footer_label = tk.Label(footer_frame, 
+                                text=footer_text, 
+                                bg='#34495E', 
+                                fg='#ECF0F1', 
+                                font=('Segoe UI', 8))
+        footer_label.pack(pady=5)
+
     def validate_inputs(self) -> Tuple[int, float, int, float]:
         try:
             clicks_per_line = max(1, int(self.entries["Max Clicks/Line"].get()))
