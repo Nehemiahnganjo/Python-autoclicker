@@ -24,7 +24,7 @@ class UniversalAutoclicker:
     def __init__(self):
         # Enhanced window with modern, clean theme
         self.root = tk.Tk()
-        self.root.title("🖱️Nehemiah's Autoclicker Pro")
+        self.root.title("🖱️ Nehemiah's Autoclicker Pro")
         self.root.geometry("700x650")
         self.root.configure(bg='#2C3E50')
         self.root.resizable(False, False)
@@ -44,6 +44,7 @@ class UniversalAutoclicker:
         self.is_clicking = False
         self.click_thread: Optional[threading.Thread] = None
         self.preview_line = None  # Explicitly initialize preview_line
+        self._click_index = -1  # For non-randomized clicks
 
         # Modes and settings variables
         self.extreme_mode = tk.BooleanVar(value=False)
@@ -82,9 +83,9 @@ class UniversalAutoclicker:
         settings_grid.pack(fill=tk.X, padx=10, pady=10)
 
         settings = [
-            ("Max Clicks/Line", "99999"),
+            ("Max Clicks/Line", "100"),
             ("Line Delay (ms)", "0"),
-            ("Total Iterations", "999999"),
+            ("Total Iterations", "1000"),
             ("Click Interval (ms)", "0")
         ]
 
@@ -172,46 +173,44 @@ class UniversalAutoclicker:
 
     def validate_inputs(self) -> Tuple[int, float, int, float]:
         try:
-            # Validate and convert inputs with reasonable defaults
             clicks_per_line = max(1, int(self.entries["Max Clicks/Line"].get()))
             line_delay = max(0, float(self.entries["Line Delay (ms)"].get()) / 1000)
             iterations = max(1, int(self.entries["Total Iterations"].get()))
             click_interval = max(0, float(self.entries["Click Interval (ms)"].get()) / 1000)
 
-            # Extreme mode overrides
             if self.extreme_mode.get():
                 clicks_per_line = min(clicks_per_line * 10, 99999)
                 line_delay = max(0, line_delay / 2)
                 iterations = min(iterations * 10, 9999999)
                 click_interval = max(0, click_interval / 2)
 
-            logger.info(f"Validated inputs: Clicks/Line={clicks_per_line}, Line Delay={line_delay}, "
-                        f"Iterations={iterations}, Click Interval={click_interval}")
             return clicks_per_line, line_delay, iterations, click_interval
         except ValueError:
             logger.warning("Invalid numeric inputs. Using default values.")
             messagebox.showwarning("Input Error", "Invalid numeric inputs. Using default values.")
-            return 9999, 0.01, 9999, 0.01
+            return 100, 0.0, 1000, 0.0
 
     def start_clicking(self):
         if not self.lines:
             messagebox.showerror("Error", "Please draw at least one line first")
             return
-
+        if self.is_clicking:
+            messagebox.showinfo("Info", "Clicking is already in progress")
+            return
         try:
             clicks_per_line, line_delay, iterations, click_interval = self.validate_inputs()
-
+            total_clicks = iterations * len(self.lines) * clicks_per_line
+            if total_clicks > 1000000:
+                if not messagebox.askyesno("Warning", f"This will perform {total_clicks:,} clicks. Continue?"):
+                    return
             self.is_clicking = True
             self.status_var.set(f"Clicking: {iterations} iterations")
-
-            # Start clicking in a separate thread
             self.click_thread = threading.Thread(
                 target=self.click_loop, 
                 args=(clicks_per_line, line_delay, iterations, click_interval)
             )
             self.click_thread.daemon = True
             self.click_thread.start()
-
         except Exception as e:
             logger.error(f"Error starting click loop: {e}")
             messagebox.showerror("Error", f"Failed to start clicking: {e}")
@@ -223,25 +222,17 @@ class UniversalAutoclicker:
                 if not self.is_clicking:
                     logger.info("Clicking stopped by user")
                     return
-
                 for line in self.lines:
-                    # Generate click points
-                    points = [self.calculate_click_point(line, clicks_per_line) 
-                              for _ in range(clicks_per_line)]
-                    
-                    for point in points:
+                    for _ in range(clicks_per_line):
                         if not self.is_clicking:
                             return
-                        
+                        point = self.calculate_click_point(line, clicks_per_line)
                         try:
                             pyautogui.click(point[0], point[1])
                         except Exception as e:
                             logger.error(f"Click error: {e}")
-
                         time.sleep(click_interval)
-
                     time.sleep(line_delay)
-
         except Exception as e:
             logger.error(f"Click loop error: {e}")
         finally:
@@ -249,19 +240,13 @@ class UniversalAutoclicker:
 
     def calculate_click_point(self, line: List[int], max_points: int) -> Tuple[int, int]:
         x1, y1, x2, y2 = line
-        
         if self.randomize_clicks.get():
-            # Randomized point generation
             t = random.random()
-            x = int(x1 + t * (x2 - x1))
-            y = int(y1 + t * (y2 - y1))
         else:
-            # More uniform distribution
-            point_index = random.randint(0, max_points - 1)
-            t = point_index / max_points
-            x = int(x1 + t * (x2 - x1))
-            y = int(y1 + t * (y2 - y1))
-        
+            self._click_index = (self._click_index + 1) % max_points
+            t = self._click_index / (max_points - 1) if max_points > 1 else 0
+        x = int(x1 + t * (x2 - x1))
+        y = int(y1 + t * (y2 - y1))
         return (x, y)
 
     def clear_lines(self):
@@ -303,7 +288,6 @@ class UniversalAutoclicker:
             self.overlay.attributes('-alpha', 0.3, '-fullscreen', True, '-topmost', True)
             self.overlay.configure(bg='black')
             
-            # Use thread-safe screen capture
             self.background = ImageGrab.grab()
             
             self.canvas = tk.Canvas(self.overlay, 
@@ -333,15 +317,11 @@ class UniversalAutoclicker:
         self.preview_line = None  # Reset preview line
 
     def on_drag(self, event):
-        # Check if preview_line exists before trying to delete
         if self.preview_line is not None:
             try:
                 self.canvas.delete(self.preview_line)
             except tk.TclError:
-                # Handle cases where the line might have already been deleted
                 pass
-        
-        # Create new preview line
         self.preview_line = self.canvas.create_line(
             self.current_line[0], self.current_line[1], 
             event.x, event.y, 
@@ -375,16 +355,10 @@ class UniversalAutoclicker:
             logger.critical(f"Critical error in application: {e}")
 
     def on_closing(self):
-        """Proper cleanup when closing the application"""
         try:
-            # Stop any ongoing clicking
-
             if self.is_clicking:
                 self.stop_clicking()
-            
-            # Unregister all hotkeys
             keyboard.unhook_all()
-            
             logger.info("Application closing")
             self.root.destroy()
         except Exception as e:
@@ -393,30 +367,18 @@ class UniversalAutoclicker:
 def main():
     try:
         print("🖱️ Universal Autoclicker Pro - Starting...")
-        
-        # Check and install dependencies
-        try:
-            import pyautogui
-            import keyboard
-            from PIL import ImageGrab
-        except ImportError as e:
-            logger.error(f"Missing dependency: {e}")
-            print("Please install required dependencies:")
-            print("pip install pyautogui keyboard pillow")
-            return
-
-        # Additional safety checks
-        if not pyautogui.FAILSAFE:
-            logger.warning("PyAutoGUI Failsafe is disabled. Use with caution!")
-
-        # Run the application
-        app = UniversalAutoclicker()
-        app.run()
-
-    except Exception as e:
-        logger.critical(f"Startup Error: {e}")
-        print(f"Critical Error: {e}")
-        print("Please check the log file for more details.")
+        import pyautogui
+        import keyboard
+        from PIL import ImageGrab
+    except ImportError as e:
+        logger.error(f"Missing dependency: {e}")
+        print("Please install required dependencies:")
+        print("pip install pyautogui keyboard pillow")
+        return
+    if not pyautogui.FAILSAFE:
+        logger.warning("PyAutoGUI Failsafe is disabled. Use with caution!")
+    app = UniversalAutoclicker()
+    app.run()
 
 if __name__ == "__main__":
     main()
